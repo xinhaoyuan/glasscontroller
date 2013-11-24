@@ -68,18 +68,14 @@ public class EntryActivity extends Activity implements GestureDetector.BaseListe
 		}
 		
 		public void onLine(String line) {
-			StringTokenizer tokens = new StringTokenizer(line);
-			if (tokens.countTokens() < 2) return;
-			String cookie = tokens.nextToken();
+			String[] tokens = line.split("&"); 
+			if (tokens.length < 2) return;
+			String cookie = tokens[0];
 			if (!cookie.equals(_cookie)) return;
-			String text = tokens.nextToken();
-			String info;
-			try {
-				info = tokens.nextToken();
-			} catch (NoSuchElementException x) {
-				info = "";
-			}
-			
+			String text = tokens[1];
+			String info = "";
+			if (tokens.length >= 2)
+				info = tokens[2];
 			try {
 				_current_card.setText(URLDecoder.decode(text, "UTF-8"));
 				_current_card.setInfo(URLDecoder.decode(info, "UTF-8"));

@@ -1,5 +1,6 @@
 #!/bin/bash
 
+LOCAL=`cd $(dirname "$0"); pwd`
 BT_SERVICE_NAME="GlassController"
 BT_HW_ADDR=$MY_GLASS_BT_ADDR
 BT_HW_ADDR_SHORT=`echo ${BT_HW_ADDR} | tr -d ':'`
@@ -39,10 +40,11 @@ if [ -n "$OLD_DEV" ]; then
 fi
 
 ${RFCOMM_CMD_PREFIX} rfcomm -f ${RFCOMM_TMP_CONFIG} bind ${BT_LOCAL_DEV_ID}
+echo "Connected"
 if [ -z "$GC_DEBUG" ]; then
-    socat "SYSTEM:awk -f echo.awk,pty,echo=0" file:/dev/rfcomm${BT_LOCAL_DEV_ID},raw
-else 
-    echo "Connected"
+#    socat "SYSTEM:awk -f ${LOCAL}/echo.awk,pty,echo=0" file:/dev/rfcomm${BT_LOCAL_DEV_ID},raw
+    socat "SYSTEM:python ${LOCAL}/okular_controller.py,pty,echo=0" file:/dev/rfcomm${BT_LOCAL_DEV_ID},raw
+else
     socat STDIO file:/dev/rfcomm${BT_LOCAL_DEV_ID},raw
 fi
 ${RFCOMM_CMD_PREFIX} rfcomm release ${BT_LOCAL_DEV_ID}

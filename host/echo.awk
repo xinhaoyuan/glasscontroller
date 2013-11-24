@@ -15,5 +15,5 @@ BEGIN {
 }
 
 {
-    if ($1 ~ /^-?[0-9]+/) print $1 " " current
+    if ($1 ~ /^-?[0-9]+/) print $1 "&" current
 }
