@@ -1,0 +1,48 @@
+#!/bin/bash
+
+BT_SERVICE_NAME="GlassController"
+BT_HW_ADDR=$MY_GLASS_BT_ADDR
+BT_HW_ADDR_SHORT=`echo ${BT_HW_ADDR} | tr -d ':'`
+BT_LOCAL_DEV_ID=2
+RFCOMM_TMP_CONFIG="/tmp/$(basename 0).$$.rfcomm.conf"
+RFCOMM_CMD_PREFIX="sudo"
+
+command -v sdptool >/dev/null 2>/dev/null || { echo "need sdptool" >&2; exit 1; }
+command -v rfcomm  >/dev/null 2>/dev/null || { echo "need rfcomm" >&2; exit 1; }
+command -v socat   >/dev/null 2>/dev/null || { echo "need socat" >&2; exit 1; }
+
+BT_CHANNEL=$1; shift;
+
+[ -z "$BT_CHANNEL" ] && BT_CHANNEL=$(sdptool browser ${BT_HW_ADDR} | perl -ne 'if (/Channel: (\d*)/) { if ($found) { print $1; $found = false; } }; /Service Name: '$BT_SERVICE_NAME'/ && { $found = true }')
+[ -z "$BT_CHANNEL" ] && { echo "Cannot find GlassController channel"; exit 1; }
+
+BT_ADDR="btspp://${BT_HW_ADDR_SHORT}:${BT_CHANNEL}"
+echo connecting to ${BT_ADDR}
+
+echo "rfcomm${BT_LOCAL_DEV_ID} {" > ${RFCOMM_TMP_CONFIG}
+echo "device ${BT_HW_ADDR};" >> ${RFCOMM_TMP_CONFIG}
+echo "channel ${BT_CHANNEL};" >> ${RFCOMM_TMP_CONFIG}
+echo 'comment "'$BT_SERVICE_NAME'"; }' >> ${RFCOMM_TMP_CONFIG}
+
+OLD_DEV="$(rfcomm -a | grep -e "rfcomm${BT_LOCAL_DEV_ID}")"
+if [ -n "$OLD_DEV" ]; then
+    echo "Old device exists:"
+    echo $OLD_DEV
+    echo "Release anyway? (y/n)"
+    read answer
+    if [ "$answer" = "y" ]; then
+        ${RFCOMM_CMD_PREFIX} rfcomm release ${BT_LOCAL_DEV_ID}
+    else
+        echo "Canceled"
+        exit 1
+    fi
+fi
+
+${RFCOMM_CMD_PREFIX} rfcomm -f ${RFCOMM_TMP_CONFIG} bind ${BT_LOCAL_DEV_ID}
+if [ -z "$GC_DEBUG" ]; then
+    socat "SYSTEM:awk -f echo.awk,pty,echo=0" file:/dev/rfcomm${BT_LOCAL_DEV_ID},raw
+else 
+    echo "Connected"
+    socat STDIO file:/dev/rfcomm${BT_LOCAL_DEV_ID},raw
+fi
+${RFCOMM_CMD_PREFIX} rfcomm release ${BT_LOCAL_DEV_ID}

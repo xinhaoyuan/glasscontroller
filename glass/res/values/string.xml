@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">GlassController</string>
+    <string name="start_glasscontroller">open controller</string>
+    <string name="menu_connect">Connect</string>
+    <string name="menu_reset">Disconnect</string>
+    <string name="menu_refresh">Refresh</string>
+</resources>
