@@ -1,8 +1,6 @@
 #!/bin/bash
 
-function require_cmd() {
-    command -v $1 >/dev/null 2>/dev/null || { echo "need $1" >&2; exit 1; }
-}
+. lib.bash
 
 LOCAL=`cd $(dirname "$0"); pwd`
 BT_SERVICE_NAME="GlassController"
@@ -14,11 +12,11 @@ RFCOMM_CMD_PREFIX="sudo"
 
 [ -z "${MY_GLASS_BT_ADDR}" ] && { echo 'please set $MY_GLASS_BT_ADDR to the BT HW Address of your Glass'; exit 1; }
 
-require_cmd sdptool
-require_cmd rfcomm
-require_cmd socat
-require_cmd perl
-require_cmd python
+require_command sdptool  || exit 1
+require_command rfcomm   || exit 1
+require_command socat    || exit 1
+require_command perl     || exit 1
+require_command python   || exit 1
 
 BT_CHANNEL=$1; shift;
 
