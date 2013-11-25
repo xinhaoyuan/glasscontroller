@@ -49,5 +49,5 @@ fi
 
 ${RFCOMM_CMD_PREFIX} rfcomm -f ${RFCOMM_TMP_CONFIG} bind ${BT_LOCAL_DEV_ID}
 echo "Connected"
-process_conn /dev/rfcomm${BT_LOCAL_DEV_ID}
+${LOCAL}/process_conn /dev/rfcomm${BT_LOCAL_DEV_ID}
 ${RFCOMM_CMD_PREFIX} rfcomm release ${BT_LOCAL_DEV_ID}
