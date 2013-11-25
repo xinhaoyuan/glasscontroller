@@ -5,16 +5,18 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.util.Set;
 import java.util.UUID;
 
 import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothServerSocket;
 import android.bluetooth.BluetoothSocket;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
 
-public class BluetoothPacketService {
+public class BluetoothPacketConnection {
 	
 	enum ConnectionState {
 		CS_UNINITIALIZED,
@@ -28,7 +30,9 @@ public class BluetoothPacketService {
 	};
 	
 	private PacketType      _pt;
+	boolean                 _host;
 	private String          _service_name;
+	private String          _device_name;
 	private Handler         _handler;
 	private ConnectionState _socket_state;
 	private BluetoothSocket _socket;
@@ -214,8 +218,10 @@ public class BluetoothPacketService {
 		}
 	}
 	
-	public BluetoothPacketService(String service_name, PacketType pt, Handler handler) {
-		_service_name = service_name;
+	public BluetoothPacketConnection(PacketType pt, Handler handler) {
+		_host = true;
+		_service_name = null;
+		_device_name = null;
 		_pt = pt;
 		_handler = handler;
 		_socket_state = ConnectionState.CS_UNINITIALIZED;
@@ -235,21 +241,37 @@ public class BluetoothPacketService {
 			public void run() {
 				BluetoothAdapter adapter = BluetoothAdapter.getDefaultAdapter();
 				try {
-					BluetoothServerSocket server = 
-							adapter.listenUsingInsecureRfcommWithServiceRecord(
-									_service_name,
-									UUID.fromString("00001101-0000-1000-8000-00805F9B34FB"));
-					BluetoothSocket sock;
-					Log.d("", "Accepting");
-					try {
-						sock = server.accept(30000);
-					} catch (IOException x) {
-						x.printStackTrace();
-						sock = null;
+					BluetoothSocket sock = null;
+					if (_host && _service_name != null) {
+						BluetoothServerSocket server = 
+								adapter.listenUsingInsecureRfcommWithServiceRecord(
+										_service_name,
+										UUID.fromString("00001101-0000-1000-8000-00805F9B34FB"));
+						Log.d("", "Accepting");
+						try {
+							sock = server.accept(30000);
+						} catch (IOException x) {
+							x.printStackTrace();
+							sock = null;
+						}
+						Log.d("", "Finished");
+						server.close();
+					} else if (!_host && _device_name != null) {
+						Set<BluetoothDevice> devs = adapter.getBondedDevices();
+						BluetoothDevice dev = null;
+						for (BluetoothDevice d : devs) {
+							if (d.getName().equals(_device_name)) {
+								dev = d;
+								break;
+							}
+						}
+						Log.d("", "Connecting");
+						sock = dev.createInsecureRfcommSocketToServiceRecord(UUID.fromString("00001101-0000-1000-8000-00805F9B34FB"));
+						sock.connect();
+						Log.d("", "Finished");
 					}
-					Log.d("", "Finished");
-					server.close();
 					
+					if (sock == null) throw new IOException();
 					final BluetoothSocket _s = sock;
 					_handler.post(new Runnable() {
 						@Override
@@ -310,6 +332,16 @@ public class BluetoothPacketService {
 		if (Looper.myLooper() != _handler.getLooper()) return false;
 		if (_socket_state != ConnectionState.CS_UNINITIALIZED) return false;
 		_looper.post(null, true);
+		return true;
+	}
+	
+	protected boolean set_connection_endpoint(boolean host, String name) {
+		if (Looper.myLooper() != _handler.getLooper()) return false;
+		if (_socket_state != ConnectionState.CS_UNINITIALIZED) return false;
+		_host = host;
+		if (host)
+			_service_name = name;
+		else _device_name = name;
 		return true;
 	}
 	

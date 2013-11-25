@@ -3,5 +3,13 @@
     <item
         android:id="@+id/menu_connect"
         android:title="@string/menu_connect"
+        android:icon="@drawable/ic_bluetooth_50">
+        <menu>
+            <item android:title="Placeholder"/>
+        </menu>
+    </item>
+    <item
+        android:id="@+id/menu_listen"
+        android:title="@string/menu_listen"
         android:icon="@drawable/ic_bluetooth_50" />
 </menu>

@@ -7,13 +7,15 @@ import java.util.StringTokenizer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import net.xinhaoyuan.glasscontroller.BluetoothPacketService.ConnectionState;
+import net.xinhaoyuan.glasscontroller.BluetoothPacketConnection.ConnectionState;
 
 import com.google.android.glass.app.Card;
 import com.google.android.glass.touchpad.Gesture;
 import com.google.android.glass.touchpad.GestureDetector;
 
 import android.app.Activity;
+import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothDevice;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -22,6 +24,7 @@ import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.MotionEvent;
+import android.view.SubMenu;
 import android.view.View;
 import android.view.ViewGroup.LayoutParams;
 import android.widget.RelativeLayout;
@@ -34,9 +37,9 @@ public class EntryActivity extends Activity implements GestureDetector.BaseListe
 	
 	private GestureDetector _detector;
 	
-	class ControllerBTService extends BluetoothPacketService {
-		public ControllerBTService() {
-			super(BT_SERVICE_NAME, PacketType.PT_LINE, new Handler(Looper.getMainLooper()));
+	class ControllerBTConnection extends BluetoothPacketConnection {
+		public ControllerBTConnection() {
+			super(PacketType.PT_LINE, new Handler(Looper.getMainLooper()));
 		}
 		
 		public boolean getConnection() {
@@ -84,7 +87,7 @@ public class EntryActivity extends Activity implements GestureDetector.BaseListe
 		}
 	}
 	
-	ControllerBTService      _service;
+	ControllerBTConnection      _service;
 	private Action           _root_action;
 	private CancelableAction _cancelable_action;
 	private AdjustableAction _adjustable_action;
@@ -105,7 +108,7 @@ public class EntryActivity extends Activity implements GestureDetector.BaseListe
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		
-		_service = new ControllerBTService();
+		_service = new ControllerBTConnection();
 		_detector = new GestureDetector(this).setBaseListener(this);
 		
 		_random = new Random();
@@ -155,6 +158,11 @@ public class EntryActivity extends Activity implements GestureDetector.BaseListe
         switch (_service.getConnectionState()) {
         case CS_UNINITIALIZED:
         	inflater.inflate(R.menu.no_connection_menu, menu);
+        	SubMenu m = menu.findItem(R.id.menu_connect).getSubMenu();
+        	m.clear();
+        	for (BluetoothDevice d : BluetoothAdapter.getDefaultAdapter().getBondedDevices()) {
+        		m.add(R.id.menu_connect, Menu.NONE, Menu.NONE, d.getName());
+        	}
         	return true;
         case CS_CONNECTED:
         	inflater.inflate(R.menu.connected_menu, menu);
@@ -168,13 +176,14 @@ public class EntryActivity extends Activity implements GestureDetector.BaseListe
     public boolean onOptionsItemSelected(MenuItem item) {
         // Handle item selection.
         switch (item.getItemId()) {
-            case R.id.menu_connect:
-            	_cancelable_action.start("Connect", new Runnable() {
+            case R.id.menu_listen:
+            	_cancelable_action.start("Listen", new Runnable() {
             		@Override
             		public void run() {
-            			_current_card.setText("Connecting");
+            			_current_card.setText("Listening");
             			_current_card.setInfo("");
         				updateCard();
+        				_service.set_connection_endpoint(true, "GlassController");
                     	_service.getConnection();
             		} }, CANCEL_DELAY);
                 return true;
@@ -199,7 +208,20 @@ public class EntryActivity extends Activity implements GestureDetector.BaseListe
             	}, CANCEL_DELAY);
             	return true;
             default:
-                return super.onOptionsItemSelected(item);
+            	if (item.getGroupId() == R.id.menu_connect) {
+            		final String device = item.getTitle().toString();
+            		Log.d("", "Connect to " + device);
+            		_cancelable_action.start("Connect", new Runnable() {
+                		@Override
+                		public void run() {
+                			_current_card.setText("Connecting");
+                			_current_card.setInfo("");
+            				updateCard();
+            				_service.set_connection_endpoint(false, device);
+                        	_service.getConnection();
+                		} }, CANCEL_DELAY);
+                    return true;
+            	} else return super.onOptionsItemSelected(item);
         }
     }
 	

@@ -41,10 +41,5 @@ fi
 
 ${RFCOMM_CMD_PREFIX} rfcomm -f ${RFCOMM_TMP_CONFIG} bind ${BT_LOCAL_DEV_ID}
 echo "Connected"
-if [ -z "$GC_DEBUG" ]; then
-#    socat "SYSTEM:awk -f ${LOCAL}/echo.awk,pty,echo=0" file:/dev/rfcomm${BT_LOCAL_DEV_ID},raw
-    socat "SYSTEM:python ${LOCAL}/okular_controller.py,pty,echo=0" file:/dev/rfcomm${BT_LOCAL_DEV_ID},raw
-else
-    socat STDIO file:/dev/rfcomm${BT_LOCAL_DEV_ID},raw
-fi
+process_conn /dev/rfcomm${BT_LOCAL_DEV_ID}
 ${RFCOMM_CMD_PREFIX} rfcomm release ${BT_LOCAL_DEV_ID}

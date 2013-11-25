@@ -1,0 +1,9 @@
+#!/bin/bash
+
+LOCAL=`cd $(dirname "$0"); pwd`
+if [ -z "${GC_DEBUG}" ]; then
+#    socat "SYSTEM:awk -f ${LOCAL}/echo.awk,pty,echo=0" file:$1,raw
+    socat "SYSTEM:python ${LOCAL}/okular_controller.py,pty,echo=0" file:$1,raw
+else
+    socat TCP-LISTEN:20080 file:$1,raw
+fi
