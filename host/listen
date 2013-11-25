@@ -1,10 +1,20 @@
 #!/bin/bash
 
+function require_cmd() {
+    command -v $1 >/dev/null 2>/dev/null || { echo "need $1" >&2; exit 1; }
+}
+
 LOCAL=`cd $(dirname "$0"); pwd`
 BT_SERVICE_NAME="GlassController"
 BT_HANDLE="0x12000"
 BT_CHANNEL=`sdptool browse local | grep "Channel:" | 
 sort | awk 'BEGIN {c = 0; found = 0 } { ++ c; if (c != $2) { found = 1; exit } } END { if (found) print c; else print (c + 1) }'`
+
+require_cmd sdptool
+require_cmd rfcomm
+require_cmd socat
+require_cmd perl
+require_cmd python
 
 [ ${BT_CHANNEL} -gt 32 ] && { echo "no channel to use"; exit 1; }
 sdptool add --channel=${BT_CHANNEL} --handle=${BT_HANDLE} sp

@@ -1,5 +1,9 @@
 #!/bin/bash
 
+function require_cmd() {
+    command -v $1 >/dev/null 2>/dev/null || { echo "need $1" >&2; exit 1; }
+}
+
 LOCAL=`cd $(dirname "$0"); pwd`
 BT_SERVICE_NAME="GlassController"
 BT_HW_ADDR=$MY_GLASS_BT_ADDR
@@ -8,14 +12,18 @@ BT_LOCAL_DEV_ID=2
 RFCOMM_TMP_CONFIG="/tmp/$(basename 0).$$.rfcomm.conf"
 RFCOMM_CMD_PREFIX="sudo"
 
-command -v sdptool >/dev/null 2>/dev/null || { echo "need sdptool" >&2; exit 1; }
-command -v rfcomm  >/dev/null 2>/dev/null || { echo "need rfcomm" >&2; exit 1; }
-command -v socat   >/dev/null 2>/dev/null || { echo "need socat" >&2; exit 1; }
+[ -z "${MY_GLASS_BT_ADDR}" ] && { echo 'please set $MY_GLASS_BT_ADDR to the BT HW Address of your Glass'; exit 1; }
+
+require_cmd sdptool
+require_cmd rfcomm
+require_cmd socat
+require_cmd perl
+require_cmd python
 
 BT_CHANNEL=$1; shift;
 
-[ -z "$BT_CHANNEL" ] && BT_CHANNEL=$(sdptool browser ${BT_HW_ADDR} | perl -ne 'if (/Channel: (\d*)/) { if ($found) { print $1; $found = false; } }; /Service Name: '$BT_SERVICE_NAME'/ && { $found = true }')
-[ -z "$BT_CHANNEL" ] && { echo "Cannot find GlassController channel"; exit 1; }
+[ -z "${BT_CHANNEL}" ] && BT_CHANNEL=$(sdptool browser ${BT_HW_ADDR} | perl -ne 'if (/Channel: (\d*)/) { if ($found) { print $1; $found = false; } }; /Service Name: '$BT_SERVICE_NAME'/ && { $found = true }')
+[ -z "${BT_CHANNEL}" ] && { echo "Cannot find GlassController channel"; exit 1; }
 
 BT_ADDR="btspp://${BT_HW_ADDR_SHORT}:${BT_CHANNEL}"
 echo connecting to ${BT_ADDR}
