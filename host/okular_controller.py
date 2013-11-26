@@ -17,12 +17,12 @@ for iface in dbusif.ListNames():
         okularif = iface
         break
 
-proxy = bus.get_object(okularif, "/okular")
-okular = dbus.Interface(proxy, "org.kde.okular")
-
-if (okular is None):
+if (okularif is None):
     sys.stderr.write("Cannot find okular")
     sys.exit(-1)
+
+proxy = bus.get_object(okularif, "/okular")
+okular = dbus.Interface(proxy, "org.kde.okular")
 
 prefix = None
 try:
